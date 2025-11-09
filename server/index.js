@@ -34,7 +34,7 @@ app.use(
 
 // ⚠️ Clerk Webhook route — must be declared before express.json()
 app.post(
-  "/api/webhook/clerk",
+  "/api/webhook",
   express.raw({ type: "application/json" }),
   verifyClerkWebhook,
   handleClerkWebhook
