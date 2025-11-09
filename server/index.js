@@ -63,7 +63,7 @@ app.get(/.*/, (_, res) => {
 const server = http.createServer(app);
 initSocket(server);
 
-const PORT = 5004;
+ 
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`WebSocket ready for real-time connections`);
