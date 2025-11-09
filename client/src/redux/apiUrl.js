@@ -1,6 +1,6 @@
 
 
-const BASE_DOMAIN =   "http://localhost:5000"
+const BASE_DOMAIN =   "https://social-ged2.onrender.com/"
 
  
 // https://socially-d8k0.onrender.com
