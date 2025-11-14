@@ -26,7 +26,7 @@ const app = express();
  
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "social-blond-three.vercel.app",
+    origin: process.env.FRONTEND_URL || "https://social-ouxf.onrender.com",
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
     exposedHeaders: ["Authorization"],

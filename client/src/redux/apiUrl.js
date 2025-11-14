@@ -1,6 +1,6 @@
 
 
-const BASE_DOMAIN = "social-blond-three.vercel.app"
+const BASE_DOMAIN = "https://social-ouxf.onrender.com"
 
  
 // https://socially-d8k0.onrender.com
