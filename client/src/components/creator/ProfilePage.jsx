@@ -7,13 +7,13 @@ import {
 } from "../../redux/slices/postSlice";
 import FollowBtn from "../creator/FollowBtn";
 import PostModal from "./PostModal";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { FaArrowLeft } from "react-icons/fa";
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   const { userPosts, loading, error, userInfo } = useSelector(
     (state) => state.posts
   );
@@ -39,14 +39,20 @@ const ProfilePage = () => {
 
   // 👇 delete post logic
   const handleDelete = async (postId) => {
+    if (!isAuthenticated) {
+      alert("Please log in to delete posts.");
+      return;
+    }
     if (window.confirm("Are you sure you want to delete this post?")) {
       try {
-        const token = await getToken();
-        await dispatch(deletePostThunk({ postId, token })).unwrap();
-        // optional feedback
-        alert("Post deleted successfully");
-        // if modal is open for this post, close it
-        if (selectedPost?._id === postId) closeModal();
+        const token = getToken();
+        if (token) {
+          await dispatch(deletePostThunk({ postId, token })).unwrap();
+          // optional feedback
+          alert("Post deleted successfully");
+          // if modal is open for this post, close it
+          if (selectedPost?._id === postId) closeModal();
+        }
       } catch (err) {
         console.error("Delete failed:", err);
         alert(err);

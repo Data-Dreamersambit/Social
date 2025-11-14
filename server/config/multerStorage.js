@@ -12,8 +12,7 @@ if (!fs.existsSync(tempPath)) {
   fs.mkdirSync(tempPath, { recursive: true });
 }
 
-// Simple filename sanitizer
-//sanitize() function replaces everything not a-z, A-Z, or 0-9 with _.
+ 
 const sanitize = (str) => str.replace(/[^a-zA-Z0-9]/g, "_");
 
 const storage = multer.diskStorage({

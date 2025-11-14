@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@clerk/clerk-js": "^5.105.1",
-    "@clerk/clerk-react": "^5.53.6",
     "@reduxjs/toolkit": "^2.10.1",
     "@tailwindcss/vite": "^4.1.16",
     "axios": "^1.13.2",
@@ -24,6 +22,7 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.5",
     "react-toastify": "^11.0.5",
+    "server": "file:..",
     "socket.io-client": "^4.8.1",
     "tailwindcss": "^4.1.16"
   },

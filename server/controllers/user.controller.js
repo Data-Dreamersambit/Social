@@ -5,16 +5,16 @@ import Post from "../models/post.model.js";
 
 export const getCurrentUser = async (req, res) => {
   try {
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     // Fetch user with selected fields and populate only necessary info
-    const user = await User.findOne({ clerkId })
+    const user = await User.findById(userId)
       .select(
-        "clerkId fullName profileImage email  followers following likedPosts savedPosts uploadedPosts"
+        "fullName profileImage email username followers following likedPosts savedPosts uploadedPosts"
       )
       .populate({
         path: "followers following",
-        select: "clerkId fullName profileImage",
+        select: "fullName profileImage username",
       })
       .populate({
         path: "likedPosts savedPosts uploadedPosts",
@@ -47,10 +47,10 @@ export const getAllUsers = async (req, res) => {
 export const toggleFollow = async (req, res) => {
   try {
     const { userId } = req.params; // person to follow/unfollow
-    const clerkId = req.auth.userId; // logged-in user’s Clerk ID
+    const currentUserId = req.userId; // logged-in user's ID
 
     // find logged-in user
-    const currentUser = await User.findOne({ clerkId });
+    const currentUser = await User.findById(currentUserId);
     if (!currentUser)
       return res.status(404).json({ message: "User not found" });
 
@@ -114,94 +114,5 @@ export const toggleFollow = async (req, res) => {
       success: false,
       message: "Failed to toggle follow.",
     });
-  }
-};
-
-export const handleClerkWebhook = async (req, res) => {
-  try {
-    const event = req.event;
-    const { type, data } = event;
-
-    if (type === "user.created") {
-      const clerkId = data.id;
-      const existingUser = await User.findOne({ clerkId });
-
-      if (!existingUser) {
-        const newUser = new User({
-          clerkId,
-          fullName: data.first_name
-            ? `${data.first_name} ${data.last_name || ""}`.trim()
-            : "Anonymous",
-          email: data.email_addresses?.[0]?.email_address || "",
-          profileImage: data.image_url || "",
-          username:
-            data.username ||
-            data.first_name?.toLowerCase() ||
-            `user_${Date.now()}`,
-        });
-
-        await newUser.save();
-      }
-    } else if (type === "user.updated") {
-      const clerkId = data.id;
-      const updates = {
-        fullName: data.first_name
-          ? `${data.first_name} ${data.last_name || ""}`.trim()
-          : undefined,
-        email: data.email_addresses?.[0]?.email_address,
-        profileImage: data.image_url,
-        username: data.username,
-      };
-
-      Object.keys(updates).forEach(
-        (key) => updates[key] === undefined && delete updates[key]
-      );
-
-      await User.findOneAndUpdate({ clerkId }, updates, { new: true });
-    } else if (type === "user.deleted") {
-      const clerkId = data.id;
-      const user = await User.findOne({ clerkId });
-
-      if (user) {
-        if (user.coverImage) {
-          try {
-            await deleteFromCloudinary(user.coverImage);
-          } catch (err) {}
-        }
-
-        await User.updateMany(
-          { followers: user._id },
-          { $pull: { followers: user._id } }
-        );
-        await User.updateMany(
-          { following: user._id },
-          { $pull: { following: user._id } }
-        );
-        await Post.updateMany(
-          { likes: user._id },
-          { $pull: { likes: user._id } }
-        );
-        await Post.updateMany(
-          { savedBy: user._id },
-          { $pull: { savedBy: user._id } }
-        );
-
-        const uploadedPosts = await Post.find({ uploadedBy: user._id });
-        for (const post of uploadedPosts) {
-          for (const media of post.media) {
-            try {
-              await deleteFromCloudinary(media.url);
-            } catch (err) {}
-          }
-          await Post.deleteOne({ _id: post._id });
-        }
-
-        await User.deleteOne({ clerkId });
-      }
-    }
-
-    res.status(200).json({ message: "Webhook processed" });
-  } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
   }
 };

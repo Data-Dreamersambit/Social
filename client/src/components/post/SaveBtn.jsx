@@ -4,9 +4,9 @@ import { toggleSavePost } from "../../redux/slices/postSlice";
 import { motion } from "framer-motion";
 import { FaBookmark, FaRegBookmark } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 function SaveBtn({ postId }) {
-     const { getToken } = useAuth();
+     const { getToken, isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const { currentAuthUser, loading: userLoading } = useSelector(
     (state) => state.user
@@ -20,7 +20,7 @@ function SaveBtn({ postId }) {
   useEffect(() => {
     if (currentAuthUser?.savedPosts && postId) {
       const saved = currentAuthUser.savedPosts.some(
-        (post) => post._id.toString() === postId.toString()
+        (post) => post._id?.toString() === postId.toString()
       );
       setIsSaved(saved);
     }
@@ -28,7 +28,7 @@ function SaveBtn({ postId }) {
 
   const handleSaved = async () => {
   
-    if (!currentAuthUser) return toast.error("Please log in to save videos!");
+    if (!currentAuthUser || !isAuthenticated) return toast.error("Please log in to save videos!");
     if (!postId) return toast.error("Invalid video ID");
 
     // Optimistic update
@@ -37,8 +37,10 @@ function SaveBtn({ postId }) {
     setLocalLoading(true);
 
     try {
-          const token = await getToken();
-      await dispatch(toggleSavePost({ postId, token })).unwrap();
+          const token = getToken();
+      if (token) {
+        await dispatch(toggleSavePost({ postId, token })).unwrap();
+      }
     } catch (error) {
       // Revert on failure
       setIsSaved(wasSaved);

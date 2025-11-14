@@ -6,8 +6,8 @@ import { getReceiverSocketId, io } from "../config/socket.js";
 // 🧠 Get all users except the logged-in user
 export const getUsersForSidebar = async (req, res) => {
   try {
-    const clerkId = req.auth.userId;
-    const user = await User.findOne({ clerkId });
+    const userId = req.userId;
+    const user = await User.findById(userId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -27,13 +27,13 @@ export const getUsersForSidebar = async (req, res) => {
 // 💬 Get all messages between logged-in user and another user
 export const getMessages = async (req, res) => {
   try {
-    const clerkId = req.auth.userId;
-    const { id: userToChatClerkId } = req.params; // Clerk ID from URL
+    const userId = req.userId;
+    const { id: userToChatId } = req.params; // User ID from URL
 
-    const user = await User.findOne({ clerkId });
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const userToChat = await User.findOne({ clerkId: userToChatClerkId });
+    const userToChat = await User.findById(userToChatId);
     if (!userToChat)
       return res.status(404).json({ message: "Receiver not found" });
 
@@ -54,15 +54,15 @@ export const getMessages = async (req, res) => {
 // 🚀 Send a message
 export const sendMessage = async (req, res) => {
   try {
-    const { id: receiverClerkId } = req.params; // receiver's Clerk ID
+    const { id: receiverId } = req.params; // receiver's User ID
 
     const { text } = req.body;
 
-    const senderClerkId = req.auth.userId;
+    const senderId = req.userId;
 
-    const sender = await User.findOne({ clerkId: senderClerkId });
+    const sender = await User.findById(senderId);
 
-    const receiver = await User.findOne({ clerkId: receiverClerkId });
+    const receiver = await User.findById(receiverId);
 
     if (!sender || !receiver) {
       return res.status(404).json({ message: "User not found" });
@@ -97,7 +97,7 @@ export const sendMessage = async (req, res) => {
     });
 
     // Real-time delivery 🚀
-    const receiverSocketId = getReceiverSocketId(receiverClerkId);
+    const receiverSocketId = getReceiverSocketId(receiver._id.toString());
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }

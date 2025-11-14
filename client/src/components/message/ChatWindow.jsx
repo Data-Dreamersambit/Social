@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { sendMessageThunk } from "../../redux/slices/messageSlice";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 
 import { AiOutlinePaperClip } from "react-icons/ai";
 import { IoSend } from "react-icons/io5";
@@ -9,6 +9,7 @@ import { IoSend } from "react-icons/io5";
 const ChatWindow = ({ selectedUser, messages, socket }) => {
   const dispatch = useDispatch();
   const { getToken } = useAuth();
+  const { currentAuthUser } = useSelector((state) => state.user);
   const [text, setText] = useState("");
   const [media, setMedia] = useState([]); // array of { file, type }
   const scrollRef = useRef();
@@ -21,7 +22,9 @@ const ChatWindow = ({ selectedUser, messages, socket }) => {
     e.preventDefault();
     if (!text && media.length === 0) return;
 
-    const token = await getToken();
+    const token = getToken();
+    if (!token) return;
+
     const formData = new FormData();
     formData.append("text", text || "");
 
@@ -32,18 +35,18 @@ const ChatWindow = ({ selectedUser, messages, socket }) => {
     });
 
     try {
-      // <-- FIX: single dispatch
+      // Send message using userId
       const resultAction = await dispatch(
-        sendMessageThunk({ userId: selectedUser.clerkId, formData, token })
+        sendMessageThunk({ userId: selectedUser._id, formData, token })
       );
 
       const newMessage = resultAction.payload;
       console.log("newMessage", newMessage);
 
-      // <-- FIX: emit with clerkId (what your server uses to map socket)
+      // Emit message via socket using userId
       if (socket && newMessage) {
         socket.emit("sendMessage", {
-          receiverClerkId: selectedUser.clerkId,
+          receiverId: selectedUser._id,
           message: newMessage,
         });
       }
@@ -81,7 +84,7 @@ const ChatWindow = ({ selectedUser, messages, socket }) => {
 
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         {messages.map((msg) => {
-          const isSender = msg.senderId !== selectedUser._id;
+          const isSender = currentAuthUser && msg.senderId?.toString() === currentAuthUser._id?.toString();
           return (
             <div
               key={msg._id}

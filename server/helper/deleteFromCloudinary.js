@@ -8,18 +8,17 @@ export const deleteFromCloudinary = async (fileUrl, resourceType = "image") => {
   try {
     const urlParts = new URL(fileUrl);
     const pathname = urlParts.pathname;
-    // Remove leading '/'
+   
     let publicIdWithExtension = pathname.substring(
       pathname.indexOf("/upload/") + 8
     );
-
-    // Remove version folder e.g. v1234567890/
+ 
     publicIdWithExtension = publicIdWithExtension.replace(/^v\d+\//, "");
 
-    // Remove file extension
+ 
     const publicId = publicIdWithExtension.replace(/\.[^/.]+$/, "");
 
-    // Call Cloudinary destroy API
+ 
     const result = await cloudinary.uploader.destroy(publicId, {
       resource_type: resourceType,
     });

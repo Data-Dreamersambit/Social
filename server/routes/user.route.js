@@ -5,10 +5,8 @@ import {
   getAllUsers,
   toggleFollow,
   getCurrentUser,
-  handleClerkWebhook,
 } from "../controllers/user.controller.js";
-import { requireAuth } from "../middleware/clerkAuth.js";
-import { verifyClerkWebhook } from "../middleware/verifyClerkWebhook.js";
+import { requireAuth } from "../middleware/auth.js";
 import storage from "../config/multerStorage.js";
 
 const router = express.Router();
@@ -22,13 +20,6 @@ const upload = multer({
 
 router.get("/all", getAllUsers);
 
-// Clerk Webhook route (raw body required for signature verification)
-router.post(
-  "/clerk",
-  express.raw({ type: "application/json" }),
-  verifyClerkWebhook,
-  handleClerkWebhook
-);
 // Authenticated route
 router.get("/me", requireAuth, getCurrentUser);
 

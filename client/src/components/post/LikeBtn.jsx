@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { toast } from "react-toastify";
 import { FaThumbsUp, FaRegThumbsUp } from "react-icons/fa";
 import { toggleLike } from "../../redux/slices/postSlice";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 
 const LikeBtn = ({ postId, likes = [] }) => {
   const dispatch = useDispatch();
@@ -13,21 +13,23 @@ const LikeBtn = ({ postId, likes = [] }) => {
 
   const [liked, setLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(likes.length);
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   useEffect(() => {
-    if (currentAuthUser) {
-      setLiked(likes.includes(currentAuthUser._id));
+    if (currentAuthUser && likes) {
+      setLiked(likes.some((like) => like?.toString() === currentAuthUser._id?.toString()));
     }
   }, [likes, currentAuthUser]);
 
   const handleLike = async () => {
-    if (!currentAuthUser) return toast.error("Please log in to like videos.");
+    if (!currentAuthUser || !isAuthenticated) return toast.error("Please log in to like videos.");
     const wasLiked = liked;
     setLiked(!liked);
     setLikesCount((prev) => prev + (liked ? -1 : 1));
     try {
-      const token = await getToken();
-      await dispatch(toggleLike({ postId, token })).unwrap();
+      const token = getToken();
+      if (token) {
+        await dispatch(toggleLike({ postId, token })).unwrap();
+      }
     } catch {
       setLiked(wasLiked);
       setLikesCount((prev) => prev + (wasLiked ? 1 : -1));

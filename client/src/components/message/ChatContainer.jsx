@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import {
   fetchChatUsers,
   fetchMessages,
@@ -14,7 +14,7 @@ import { useLocation } from "react-router-dom";
 
 const ChatContainer = () => {
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   const { chatUsers, messages } = useSelector((state) => state.messages);
   // const [selectedUser, setSelectedUser] = useState(null);
   const [isUserPanelOpen, setIsUserPanelOpen] = useState(false);
@@ -38,22 +38,27 @@ const [selectedUser, setSelectedUser] = useState(preselectedUser);
 
   // 🧠 Load all chat users
   useEffect(() => {
+    if (!isAuthenticated) return;
     const loadUsers = async () => {
-      const token = await getToken();
-      dispatch(fetchChatUsers(token));
+      const token = getToken();
+      if (token) {
+        dispatch(fetchChatUsers(token));
+      }
     };
     loadUsers();
-  }, [dispatch, getToken]);
+  }, [dispatch, getToken, isAuthenticated]);
 
   // 💬 Fetch messages for selected user
   useEffect(() => {
-    if (!selectedUser) return;
+    if (!selectedUser || !isAuthenticated) return;
     const loadMessages = async () => {
-      const token = await getToken();
-      dispatch(fetchMessages({ userId: selectedUser.clerkId, token }));
+      const token = getToken();
+      if (token) {
+        dispatch(fetchMessages({ userId: selectedUser._id, token }));
+      }
     };
     loadMessages();
-  }, [selectedUser, dispatch, getToken]);
+  }, [selectedUser, dispatch, getToken, isAuthenticated]);
 
   return (
     <div
