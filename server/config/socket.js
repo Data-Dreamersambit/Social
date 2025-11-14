@@ -6,7 +6,7 @@ const userSocketMap = {}; // { userId: socketId }
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL || "http://localhost:5173",
+      origin: process.env.FRONTEND_URL || "social-blond-three.vercel.app",
       credentials: true,
     },
   });
