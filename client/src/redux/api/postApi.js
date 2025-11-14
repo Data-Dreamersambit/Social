@@ -10,7 +10,7 @@ export const createPost = (formData, token) =>
   api.post("/create", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
-      Authorization: `Bearer ${token}`, // Clerk JWT
+      Authorization: `Bearer ${token}`, // JWT token
     },
   });
 

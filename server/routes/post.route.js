@@ -11,7 +11,7 @@ import {
   deletePost,
   updatePost
 } from "../controllers/post.controller.js";
-import { requireAuth } from "../middleware/clerkAuth.js";
+import { requireAuth } from "../middleware/auth.js";
 import storage from "../config/multerStorage.js";
 
 const router = express.Router();

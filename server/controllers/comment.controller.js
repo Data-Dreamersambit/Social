@@ -6,7 +6,7 @@ export const addCommentToPost = async (req, res) => {
   try {
     const { postId } = req.params; // 🧩 Post ID
     const { text } = req.body;
-    const clerkId = req.auth.userId; // Clerk User ID
+    const userId = req.userId; // User ID from JWT
 
     // 🧠 1️⃣ Validate input
     if (!text || text.trim() === "") {
@@ -19,8 +19,8 @@ export const addCommentToPost = async (req, res) => {
       return res.status(404).json({ message: "Post not found." });
     }
 
-    // 👤 3️⃣ Find user from your database using Clerk ID
-    const user = await User.findOne({ clerkId });
+    // 👤 3️⃣ Find user from your database using User ID
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -106,14 +106,14 @@ export const updateComment = async (req, res) => {
   try {
     const { commentId } = req.params; // comment ID
     const { text } = req.body;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     if (!text || text.trim() === "") {
       return res.status(400).json({ message: "Comment text is required." });
     }
 
-    // 🧍‍♂️ Find user by Clerk ID
-    const user = await User.findOne({ clerkId });
+    // 🧍‍♂️ Find user by User ID
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -156,10 +156,10 @@ export const updateComment = async (req, res) => {
 export const deleteComment = async (req, res) => {
   try {
     const { commentId } = req.params;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     // 🧍 Find the user
-    const user = await User.findOne({ clerkId });
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -211,7 +211,7 @@ export const replyToComment = async (req, res) => {
   try {
     const { commentId } = req.params; // 🧩 Parent comment ID
     const { text } = req.body;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     // 🧠 Validate text
     if (!text || text.trim() === "") {
@@ -230,8 +230,8 @@ export const replyToComment = async (req, res) => {
       return res.status(404).json({ message: "Post not found." });
     }
 
-    // 👤 Find the user by Clerk ID
-    const user = await User.findOne({ clerkId });
+    // 👤 Find the user by User ID
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -275,10 +275,10 @@ export const replyToComment = async (req, res) => {
 export const toggleComment = async (req, res) => {
   try {
     const { commentId } = req.params;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     // 1️⃣ Find the user
-    const user = await User.findOne({ clerkId });
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found." });
 
     // 2️⃣ Find the comment (select only what we need)

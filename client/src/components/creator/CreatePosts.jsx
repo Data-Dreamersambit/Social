@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { createPost } from "../../redux/slices/postSlice";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { FiUpload, FiImage, FiVideo } from "react-icons/fi";
 
 const CreatePosts = () => {
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   const { loading } = useSelector((state) => state.posts);
 
   const [mediaType, setMediaType] = useState("image");
@@ -26,6 +26,11 @@ const CreatePosts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!isAuthenticated) {
+      alert("Please log in to create posts.");
+      return;
+    }
+
     if (mediaFiles.length === 0) {
       alert("Please select at least one media file.");
       return;
@@ -41,8 +46,10 @@ const CreatePosts = () => {
     formData.append("caption", caption);
     formData.append("tags", tags);
 
-    const token = await getToken();
-    dispatch(createPost({ formData, token }));
+    const token = getToken();
+    if (token) {
+      dispatch(createPost({ formData, token }));
+    }
   };
 
   const clearPreview = () => {

@@ -2,12 +2,12 @@ import React, { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { toast } from "react-toastify";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { toggleFollow } from "../../redux/slices/userSlice";
 
 const FollowBtn = ({ userId, className = "" }) => {
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   const { currentAuthUser, loading } = useSelector((state) => state.user);
   const [localLoading, setLocalLoading] = useState(false);
 
@@ -17,15 +17,17 @@ const FollowBtn = ({ userId, className = "" }) => {
     ) || false;
 
   const handleToggleFollow = async () => {
-    if (!currentAuthUser) {
+    if (!currentAuthUser || !isAuthenticated) {
       toast.error("Please log in to follow users.");
       return;
     }
 
     setLocalLoading(true);
     try {
-      const token = await getToken();
-      await dispatch(toggleFollow({ userId, token })).unwrap();
+      const token = getToken();
+      if (token) {
+        await dispatch(toggleFollow({ userId, token })).unwrap();
+      }
     } catch (error) {
       toast.error(error?.message || "Failed to update follow status.");
     } finally {

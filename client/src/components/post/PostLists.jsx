@@ -2,27 +2,27 @@ import React, { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllPosts } from "../../redux/slices/postSlice";
 import PostCard from "./PostCard";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 const PostLists = () => {
   const dispatch = useDispatch();
   const { posts, postsLoading, error } = useSelector((state) => state.posts);
-console.log("posts",posts)
-  const { getToken,isLoaded } = useAuth();
+  const { getToken, loading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchUser = async () => {
-        if (!isLoaded) return;
+        if (loading) return;
       try {
-        const token = await getToken(); 
-         dispatch(fetchAllPosts(token));
-        
+        const token = getToken(); 
+        if (token && isAuthenticated) {
+          dispatch(fetchAllPosts(token));
+        }
       } catch (err) {
-        console.error("Failed to get Clerk token", err);
+        console.error("Failed to get token", err);
       }
     };
   
     fetchUser();
-  }, [dispatch, getToken, isLoaded]);
+  }, [dispatch, getToken, loading, isAuthenticated]);
 
   if (postsLoading) {
     return (

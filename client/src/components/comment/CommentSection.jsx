@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { IoClose } from "react-icons/io5";
 import { useDispatch, useSelector } from "react-redux";
-import { useAuth, useUser } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { getPostComments, addComment } from "../../redux/slices/coomentSlice";
 import CommentItem from "./CommentItem";
 import { FaPaperPlane } from "react-icons/fa";
 
 const CommentsSection = ({ postId, onClose }) => {
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
-  const { user } = useUser();
+  const { getToken, isAuthenticated } = useAuth();
+  const { currentAuthUser } = useSelector((state) => state.user);
   const { comments, loading, error } = useSelector((state) => state.comments);
   // console.log("comment from CommentsSection",comments)
   const [text, setText] = useState("");
@@ -17,20 +17,24 @@ const CommentsSection = ({ postId, onClose }) => {
   // 🧠 Fetch comments
   useEffect(() => {
     const fetch = async () => {
-      if (!postId) return;
-      const token = await getToken();
-      dispatch(getPostComments({ postId, token }));
+      if (!postId || !isAuthenticated) return;
+      const token = getToken();
+      if (token) {
+        dispatch(getPostComments({ postId, token }));
+      }
     };
     fetch();
-  }, [postId, dispatch, getToken]);
+  }, [postId, dispatch, getToken, isAuthenticated]);
 
   // 💬 Add comment
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
-    const token = await getToken();
-    dispatch(addComment({ postId, text, token }));
-    setText("");
+    if (!text.trim() || !isAuthenticated) return;
+    const token = getToken();
+    if (token) {
+      dispatch(addComment({ postId, text, token }));
+      setText("");
+    }
   };
 
   return (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { updatePostThunk, fetchPostById } from "../../redux/slices/postSlice";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import { FiUpload } from "react-icons/fi";
 import { useParams, useNavigate } from "react-router-dom";
@@ -10,7 +10,7 @@ const UpdatePost = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
 
   const { userPosts, currentPost, curPostLoading, loading } = useSelector(
     (state) => state.posts
@@ -28,9 +28,10 @@ const UpdatePost = () => {
   // Fetch post if not available
   useEffect(() => {
     const fetchPost = async () => {
+      if (!isAuthenticated) return;
       try {
-        const token = await getToken();
-        if (!localPost) {
+        const token = getToken();
+        if (token && !localPost) {
           await dispatch(fetchPostById({ postId, token }));
         }
       } catch (err) {
@@ -38,7 +39,7 @@ const UpdatePost = () => {
       }
     };
     fetchPost();
-  }, [dispatch, getToken, postId, localPost]);
+  }, [dispatch, getToken, postId, localPost, isAuthenticated]);
 
   // Prefill data
   useEffect(() => {
@@ -61,8 +62,13 @@ const UpdatePost = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      alert("Please log in to update posts.");
+      return;
+    }
     try {
-      const token = await getToken();
+      const token = getToken();
+      if (!token) return;
       const formData = new FormData();
 
       if (mediaFiles.length > 0) {

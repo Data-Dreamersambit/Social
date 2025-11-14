@@ -164,8 +164,7 @@ const postSlice = createSlice({
         state.error = null;
       })
       .addCase(createPost.fulfilled, (state, action) => {
-        state.posts = action.payload;
-        state.token = action.payload.token; // you can use this if you need other wise, remove 
+        state.posts.unshift(action.payload);
         state.loading = false;
       })
       .addCase(createPost.rejected, (state, action) => {

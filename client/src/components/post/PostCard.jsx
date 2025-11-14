@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch,useSelector } from "react-redux";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import { FaRegCommentDots } from "react-icons/fa6";
 import { incrementPostView } from "../../redux/slices/postSlice";
 import LikeBtn from "./LikeBtn";
@@ -18,19 +18,22 @@ const PostCard = ({ post }) => {
     // console.log("comments on  PostCard",comments)
   const [showComments, setShowComments] = useState(false);
   const dispatch = useDispatch();
-  const { getToken } = useAuth();
+  const { getToken, isAuthenticated } = useAuth();
   const postRef = useRef(null);
 
   // 📈 Increment view count once when 70% of post is visible
   useEffect(() => {
+    if (!isAuthenticated) return;
     const observer = new IntersectionObserver(
       async (entries) => {
         const [entry] = entries;
         if (entry.isIntersecting) {
           try {
-            const token = await getToken();
-            dispatch(incrementPostView({ postId: _id, token }));
-            observer.disconnect();
+            const token = getToken();
+            if (token) {
+              dispatch(incrementPostView({ postId: _id, token }));
+              observer.disconnect();
+            }
           } catch (err) {
             console.error("Error incrementing view:", err);
           }
@@ -41,7 +44,7 @@ const PostCard = ({ post }) => {
 
     if (postRef.current) observer.observe(postRef.current);
     return () => observer.disconnect();
-  }, [dispatch, getToken, _id]);
+  }, [dispatch, getToken, _id, isAuthenticated]);
 
   return (
     <div

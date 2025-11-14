@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   deleteComment,
   updateComment,
   toggleComment,
   replyToComment,
 } from "../../redux/slices/coomentSlice";
-import { useUser, useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 import {
   FaHeart,
   FaEdit,
@@ -19,8 +19,8 @@ import moment from "moment";
 
 const CommentItem = ({ comment }) => {
   const dispatch = useDispatch();
-  const { user } = useUser();
-  const { getToken } = useAuth();
+  const { currentAuthUser } = useSelector((state) => state.user);
+  const { getToken, isAuthenticated } = useAuth();
 // console.log("comment from CommentItem",comment)
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(comment.text);
@@ -29,34 +29,42 @@ const CommentItem = ({ comment }) => {
 
   // ✅ Update comment
   const handleUpdate = async () => {
-    if (!editText.trim()) return;
-    const token = await getToken();
-    dispatch(updateComment({ commentId: comment._id, text: editText, token }));
-    setIsEditing(false);
+    if (!editText.trim() || !isAuthenticated) return;
+    const token = getToken();
+    if (token) {
+      dispatch(updateComment({ commentId: comment._id, text: editText, token }));
+      setIsEditing(false);
+    }
   };
 
   // ✅ Delete comment
   const handleDelete = async () => {
-    const token = await getToken();
-    dispatch(deleteComment({ commentId: comment._id, token }));
+    if (!isAuthenticated) return;
+    const token = getToken();
+    if (token) {
+      dispatch(deleteComment({ commentId: comment._id, token }));
+    }
   };
 
   // ✅ Like / Unlike comment
   const handleLike = async () => {
-    const token = await getToken();
-    dispatch(toggleComment({ commentId: comment._id, token }));
-    
-
+    if (!isAuthenticated) return;
+    const token = getToken();
+    if (token) {
+      dispatch(toggleComment({ commentId: comment._id, token }));
+    }
   };
 
   // ✅ Reply to comment
   const handleReply = async () => {
-    if (!replyText.trim()) return;
-    const token = await getToken();
-    dispatch(
-      replyToComment({ commentId: comment._id, text: replyText, token })
-    );
-    setReplyText("");
+    if (!replyText.trim() || !isAuthenticated) return;
+    const token = getToken();
+    if (token) {
+      dispatch(
+        replyToComment({ commentId: comment._id, text: replyText, token })
+      );
+      setReplyText("");
+    }
   };
 
   return (
@@ -65,10 +73,17 @@ const CommentItem = ({ comment }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <img
-        src={user?.imageUrl}
-        className="w-10 h-10 rounded-full object-cover border border-gray-700"
-      />
+      {comment.user?.profileImage ? (
+        <img
+          src={comment.user.profileImage}
+          alt={comment.user?.fullName}
+          className="w-10 h-10 rounded-full object-cover border border-gray-700"
+        />
+      ) : (
+        <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white text-sm border border-gray-700">
+          {comment.user?.fullName?.charAt(0)?.toUpperCase() || "U"}
+        </div>
+      )}
 
       <div className="flex-1">
         {/* User Info */}
@@ -83,27 +98,31 @@ const CommentItem = ({ comment }) => {
           </div>
 
           <div className="flex gap-3 text-sm">
-            {isEditing ? (
-              <button
-                onClick={handleUpdate}
-                className="text-blue-400 hover:text-blue-300"
-              >
-                Save
-              </button>
-            ) : (
+            {currentAuthUser && comment.user?._id === currentAuthUser._id && (
               <>
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="text-yellow-400 hover:text-yellow-300"
-                >
-                  <FaEdit />
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="text-red-500 hover:text-red-400"
-                >
-                  <FaTrash />
-                </button>
+                {isEditing ? (
+                  <button
+                    onClick={handleUpdate}
+                    className="text-blue-400 hover:text-blue-300"
+                  >
+                    Save
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="text-yellow-400 hover:text-yellow-300"
+                    >
+                      <FaEdit />
+                    </button>
+                    <button
+                      onClick={handleDelete}
+                      className="text-red-500 hover:text-red-400"
+                    >
+                      <FaTrash />
+                    </button>
+                  </>
+                )}
               </>
             )}
           </div>

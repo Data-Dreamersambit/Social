@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { fetchAllPosts } from "../../redux/slices/postSlice";
 import { fetchCurrentAuthUser } from "../../redux/slices/userSlice";
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 
 const UserSavedPosts = () => {
   const dispatch = useDispatch();
@@ -12,25 +12,27 @@ const UserSavedPosts = () => {
   const { posts } = useSelector((state) => state.posts);
   const { currentAuthUser } = useSelector((state) => state.user);
 
-  const { getToken, isLoaded } = useAuth();
+  const { getToken, loading: authLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!isLoaded) return;
+      if (authLoading || !isAuthenticated) return;
 
       try {
-        const token = await getToken();
-        // 1️⃣ Fetch current user again (from backend using Clerk ID)
-        await dispatch(fetchCurrentAuthUser(token));
-        // 2️⃣ Fetch all posts
-        await dispatch(fetchAllPosts(token));
+        const token = getToken();
+        if (token) {
+          // 1️⃣ Fetch current user again (from backend using JWT)
+          await dispatch(fetchCurrentAuthUser(token));
+          // 2️⃣ Fetch all posts
+          await dispatch(fetchAllPosts(token));
+        }
       } catch (err) {
         console.error("Failed to fetch data:", err);
       }
     };
 
     fetchData();
-  }, [dispatch, getToken, isLoaded]);
+  }, [dispatch, getToken, authLoading, isAuthenticated]);
 
   // Extract just the IDs from user's saved posts
   const savedPostIds = (currentAuthUser?.savedPosts || []).map((p) => p._id);

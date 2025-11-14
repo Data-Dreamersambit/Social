@@ -7,9 +7,9 @@ import deleteFromCloudinary from "../helper/deleteFromCloudinary.js";
 export const createPost = async (req, res) => {
   try {
     const { caption, tags } = req.body;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
-    // 🧩 Validation
+    
     if (!req.files || (!req.files.images && !req.files.videos)) {
       return res.status(400).json({
         success: false,
@@ -17,18 +17,17 @@ export const createPost = async (req, res) => {
       });
     }
 
-    // 🔍 Find user by Clerk ID
-    const user = await User.findOne({ clerkId });
+ 
+    const user = await User.findById(userId);
     if (!user) {
       return res
         .status(404)
         .json({ success: false, message: "User not found" });
     }
 
-    // 🖼️ Upload media files to Cloudinary
+ 
     const mediaUploads = [];
-
-    // Upload images
+ 
     if (req.files.images) {
       for (const img of req.files.images) {
         const result = await uploadToCloudinary(img.path, {
@@ -39,7 +38,7 @@ export const createPost = async (req, res) => {
       }
     }
 
-    // Upload videos
+    
     if (req.files.videos) {
       for (const vid of req.files.videos) {
         const result = await uploadToCloudinary(vid.path, {
@@ -50,7 +49,7 @@ export const createPost = async (req, res) => {
       }
     }
 
-    // 🏷️ Parse tags (string → array)
+     
     let parsedTags = [];
     if (typeof tags === "string") {
       parsedTags = tags
@@ -61,22 +60,21 @@ export const createPost = async (req, res) => {
       parsedTags = tags;
     }
 
-    // 🆕 Create new post
+   
     const newPost = new Post({
-      user: user._id, // ✅ Correct: use MongoDB ObjectId, not Clerk ID
+      user: user._id, 
       media: mediaUploads,
       caption: caption?.trim() || "",
       tags: parsedTags,
     });
 
-    // 💾 Save post
+     
     await newPost.save();
 
     await User.findByIdAndUpdate(user._id, {
       $push: { uploadedPosts: newPost._id },
     });
-
-    // ✅ Response
+ 
     res.status(201).json({
       success: true,
       message: "Post created successfully.",
@@ -94,7 +92,7 @@ export const createPost = async (req, res) => {
 
 export const getAllPosts = async (req, res) => {
   try {
-    // Optional pagination support (for scalability)
+    
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -105,7 +103,7 @@ export const getAllPosts = async (req, res) => {
       .limit(limit)
       .populate({
         path: "user",
-        select: "fullName profileImage ", // minimal user data
+        select: "fullName username profileImage ", // minimal user data
       })
       .populate({
         path: "comments",
@@ -113,7 +111,7 @@ export const getAllPosts = async (req, res) => {
         populate: { path: "user", select: "fullName profileImage" },
       })
       .select("media caption tags likes commentsCount views createdAt") // only necessary post fields
-      .lean(); // plain JS objects for better performance
+      .lean();  
 
     const total = await Post.countDocuments();
 
@@ -137,7 +135,7 @@ export const getPostById = async (req, res) => {
     const post = await Post.findById(postId)
       .populate({
         path: "user",
-        select: "fullName clerkId profileImage ",
+        select: "fullName username profileImage ",
       })
       .populate({
         path: "comments",
@@ -168,20 +166,20 @@ export const getUserPosts = async (req, res) => {
       return res.status(400).json({ message: "User ID is required" });
     }
 
-    // ✅ Fetch user info
+ 
     const user = await User.findById(userId)
       .select("fullName profileImage  followers following")
       .lean();
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ✅ Get posts for that user
+   
     const posts = await Post.find({ user: userId })
       .populate("user", "fullName profileImage")
       .sort({ createdAt: -1 })
       .lean();
 
-    // ✅ Add counts (for simplicity)
+    
     const userWithCounts = {
       ...user,
       followersCount: user.followers.length,
@@ -202,13 +200,13 @@ export const getUserPosts = async (req, res) => {
 export const togglePostLike = async (req, res) => {
   try {
     const { postId } = req.params;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found." });
 
-    // 🔥 Use clerkId field instead of _id
-    const user = await User.findOne({ clerkId });
+    // 🔥 Use userId from JWT
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found." });
 
     const alreadyLiked = post.likes.some(
@@ -244,9 +242,9 @@ export const togglePostLike = async (req, res) => {
 export const togglePostSave = async (req, res) => {
   try {
     const { postId } = req.params;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
-    // 1️⃣ Check if post exists
+    
     const post = await Post.findById(postId);
     if (!post) {
       return res.status(404).json({
@@ -255,8 +253,8 @@ export const togglePostSave = async (req, res) => {
       });
     }
 
-    // 2️⃣ Fetch user using Clerk ID
-    const user = await User.findOne({ clerkId });
+ 
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -264,7 +262,7 @@ export const togglePostSave = async (req, res) => {
       });
     }
 
-    // 3️⃣ Check if post is already saved
+    
     const isSaved = user.savedPosts.includes(postId);
 
     if (isSaved) {
@@ -296,10 +294,10 @@ export const togglePostSave = async (req, res) => {
 export const incrementPostViewCount = async (req, res) => {
   try {
     const { postId } = req.params; // post ID
-    const clerkId = req.auth.userId; // Clerk ID from token
+    const userId = req.userId; // User ID from JWT token
 
-    // 1️⃣ Find the user in your DB using clerkId
-    const user = await User.findOne({ clerkId });
+    // 1️⃣ Find the user in your DB using userId
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
@@ -323,7 +321,7 @@ export const incrementPostViewCount = async (req, res) => {
       });
     }
 
-    // 4️⃣ Increment views and store the user reference
+    
     post.views += 1;
     post.viewedBy.push(user._id);
     await post.save();
@@ -343,11 +341,11 @@ export const incrementPostViewCount = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const clerkId = req.auth.userId; // Clerk authentication
+    const userId = req.userId; // User ID from JWT
     const { caption, tags } = req.body;
 
-    // 🔍 Find the user via Clerk ID
-    const user = await User.findOne({ clerkId });
+    // 🔍 Find the user via User ID
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found." });
 
     // 🔎 Find post
@@ -419,10 +417,10 @@ export const updatePost = async (req, res) => {
 export const deletePost = async (req, res) => {
   try {
     const { id } = req.params;
-    const clerkId = req.auth.userId;
+    const userId = req.userId;
 
-    // 🔍 Find the user via Clerk
-    const user = await User.findOne({ clerkId });
+    // 🔍 Find the user via User ID
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found." });
 
     // 🔎 Find the post

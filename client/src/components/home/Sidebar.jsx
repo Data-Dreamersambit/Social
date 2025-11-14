@@ -1,15 +1,15 @@
 import React, { useState } from "react";
-import { SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 import { NavLink } from "react-router-dom";
 import { FaHome, FaUserFriends, FaBars } from "react-icons/fa";
 import { IoSearchSharp } from "react-icons/io5";
-
 import { BsCollectionPlayFill } from "react-icons/bs";
 import { FaCircleUser } from "react-icons/fa6";
 import { FaSquarePlus } from "react-icons/fa6";
 import { IoIosChatboxes } from "react-icons/io";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useSelector } from "react-redux";
 const navItems = () => [
   { to: "/", icon: FaHome, text: "Home" },
   { to: "/search", icon: IoSearchSharp, text: "Discover" },
@@ -21,8 +21,18 @@ const navItems = () => [
 
 function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const { currentAuthUser } = useSelector((state) => state.user);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
+
+  const handleLogout = () => {
+    logout();
+    setShowUserMenu(false);
+  };
+
+  const displayUser = currentAuthUser || user;
 
   return (
     <>
@@ -38,23 +48,53 @@ function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
           Socially
         </motion.h1>
 
-        <div>
-          <SignedIn>
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonAvatarBox: "w-8 h-8",
-                },
-              }}
-            />
-          </SignedIn>
-
-          <SignedOut>
+        <div className="relative">
+          {displayUser ? (
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="w-8 h-8 rounded-full overflow-hidden border-2 border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              >
+                {displayUser.profileImage ? (
+                  <img
+                    src={displayUser.profileImage}
+                    alt={displayUser.fullName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white text-xs">
+                    {displayUser.fullName?.charAt(0)?.toUpperCase() || "U"}
+                  </div>
+                )}
+              </button>
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                  <div className="py-2">
+                    <button
+                      onClick={() => {
+                        navigate(`/profile/${displayUser._id}`);
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700"
+                    >
+                      Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                    >
+                    Logout
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
             <FaCircleUser
               className="w-8 h-8 cursor-pointer"
               onClick={() => navigate("/login")}
             />
-          </SignedOut>
+          )}
         </div>
       </div>
 
@@ -127,24 +167,68 @@ function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
             ))}
           </nav>
 
-          {/* Clerk UserButton */}
+          {/* User Profile Button */}
           <div className="mt-auto flex justify-center md:justify-start mb-4">
-            <SignedIn>
-              <UserButton
-                appearance={{
-                  elements: {
-                    userButtonAvatarBox: "w-10 h-10",
-                  },
-                }}
-              />
-            </SignedIn>
-
-            <SignedOut>
+            {displayUser ? (
+              <div className="relative w-full">
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-400 ${
+                    isSidebarOpen ? "justify-start" : "justify-center"
+                  }`}
+                >
+                  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-amber-400 shrink-0">
+                    {displayUser.profileImage ? (
+                      <img
+                        src={displayUser.profileImage}
+                        alt={displayUser.fullName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-700 flex items-center justify-center text-white text-sm">
+                        {displayUser.fullName?.charAt(0)?.toUpperCase() || "U"}
+                      </div>
+                    )}
+                  </div>
+                  {isSidebarOpen && (
+                    <div className="flex-1 text-left">
+                      <p className="text-sm font-medium text-white truncate">
+                        {displayUser.fullName}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        @{displayUser.username || "user"}
+                      </p>
+                    </div>
+                  )}
+                </button>
+                {showUserMenu && (
+                  <div className="absolute bottom-full left-0 mb-2 w-full bg-gray-800 rounded-lg shadow-lg border border-gray-700 z-50">
+                    <div className="py-2">
+                      <button
+                        onClick={() => {
+                          navigate(`/profile/${displayUser._id}`);
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-700 flex items-center gap-2"
+                      >
+                      Logout
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
               <FaCircleUser
                 className="w-10 h-10 cursor-pointer"
                 onClick={() => navigate("/login")}
               />
-            </SignedOut>
+            )}
           </div>
         </div>
       </div>
@@ -168,6 +252,14 @@ function Sidebar({ isSidebarOpen, setIsSidebarOpen }) {
           ))}
         </nav>
       </div>
+
+      {/* Click outside to close user menu */}
+      {showUserMenu && (
+        <div
+          className="fixed inset-0 z-30"
+          onClick={() => setShowUserMenu(false)}
+        />
+      )}
     </>
   );
 }

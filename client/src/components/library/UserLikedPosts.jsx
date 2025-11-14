@@ -3,28 +3,29 @@ import { useSelector, useDispatch } from "react-redux";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { fetchAllPosts } from "../../redux/slices/postSlice"; // adjust path
-import { useAuth } from "@clerk/clerk-react";
+import { useAuth } from "../../context/AuthContext";
 const UserLikedPosts = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { getToken,isLoaded } = useAuth();
+  const { getToken, loading: authLoading, isAuthenticated } = useAuth();
   const { posts } = useSelector((state) => state.posts);
   const { currentAuthUser } = useSelector((state) => state.user);
 
   useEffect(() => {
     const fetchUser = async () => {
-        if (!isLoaded) return;
+        if (authLoading || !isAuthenticated) return;
       try {
-        const token = await getToken(); 
-         dispatch(fetchAllPosts(token));
-        
+        const token = getToken(); 
+        if (token) {
+          dispatch(fetchAllPosts(token));
+        }
       } catch (err) {
-        console.error("Failed to get Clerk token", err);
+        console.error("Failed to get token", err);
       }
     };
   
     fetchUser();
-  }, [dispatch, getToken, isLoaded]);
+  }, [dispatch, getToken, authLoading, isAuthenticated]);
 
   const likedPosts = posts.filter((post) =>
     post.likes.includes(currentAuthUser?._id)
